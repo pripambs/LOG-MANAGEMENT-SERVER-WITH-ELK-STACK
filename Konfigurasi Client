@@ -1,0 +1,42 @@
+============================
+Konfigurasi Client
+============================
+systemctl stop firewalld
+systemctl disable firewalld
+vim /etc/sysconfig/selinux
+SELINUX = disabled
+reboot
+getenforce
+ssh root@client1IP
+scp root@192.168.100.132:~/logstash-forwarder.crt  .
+sudo mkdir -p /etc/pki/tls/certs/
+mv ~/logstash-forwarder.crt /etc/pki/tls/certs/
+rpm --import https://artifacts.elastic.co/GPG-KEY-elasticsearch
+wget https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-5.1.1-x86_64.rpm
+rpm -ivh filebeat-5.1.1-x86_64.rpm
+cd /etc/filebeat/
+vim filebeat.yml
+paths:
+    - /var/log/secure
+    - /var/log/messages
+document-type: syslog
+output.logstash:
+  # The Logstash hosts
+  hosts: ["192.168.100.132:5443"]
+  bulk_max_size: 1024
+  ssl.certificate_authorities: ["/etc/pki/tls/certs/logstash-forwarder.crt"]
+  template.name: "filebeat"
+  template.path: "filebeat.template.json"
+  template.overwrite: false
+sudo systemctl enable filebeat
+sudo systemctl start filebeat
+
+=========================
+konfigurasi waktu
+=========================
+date
+date -u
+unlink /etc/localtime
+ln -s /usr/share/zoneinfo/Asia/Jakarta /etc/localtime
+timedatectl set-timezone Asia/Jakarta
+timedatectl
